@@ -1,17 +1,36 @@
-sudo: false
+notifications:
+  email: false
+
 language: go
 go:
   - "1.x"
 go_import_path: hello-travis
+
 branches:
   only:
   - dev
   - master
+
 before_install:
   - curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+  - wget https://releases.hashicorp.com/terraform/0.10.6/terraform_0.10.6_linux_amd64.zip
+  - unzip terraform_0.10.6_linux_amd64.zip
+
 install:
   - dep ensure
+
 script:
   - go test -v -race ./...
   - go vet ./...
+  - GOOS=linux GOARCH=amd64 go build -o ./terraform/main ./lambda/main.go
+  - zip ./terraform/main.zip ./terraform/main
+  - ./terraform init && ./terraform plan
+
+deploy:
+  - provider: script
+    script:
+      - ./terraform apply
+    skip_cleanup: true
+    on:
+        branch: master
 
