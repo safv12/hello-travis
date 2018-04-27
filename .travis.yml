@@ -1,4 +1,47 @@
+notifications:
+  email: false
+
 language: go
 go:
   - "1.x"
 go_import_path: hello-travis
+
+branches:
+  only:
+  - dev
+  - master
+
+before_install:
+  - curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+  - pip install --user awscli
+  - export PATH=$PATH:$HOME/.local/bin
+  - wget https://releases.hashicorp.com/terraform/0.10.6/terraform_0.10.6_linux_amd64.zip
+  - unzip terraform_0.10.6_linux_amd64.zip -d $GOPATH/bin
+
+install:
+  - dep ensure
+
+script:
+  - go test -v -race ./...
+  - go vet ./...
+  - GOOS=linux GOARCH=amd64 go build -o main ./lambda/main.go && zip main.zip main
+
+before_deploy:
+  - aws cloudformation create-stack --stack-name TERRAFORM-TRAVIS-0001 --template-body file://./terraform/hello-travis-iam.yaml --capabilities CAPABILITY_IAM
+  - aws cloudformation wait stack-create-complete --stack-name TERRAFORM-TRAVIS-0001
+  - terraform init ./terraform
+  - terraform plan -var 'lambda_handler=main' -var 'lambda_zip=main.zip' ./terraform
+
+deploy:
+  - provider: script
+    script:
+      - terraform apply -var 'lambda_handler=main' -var 'lambda_zip=main.zip' ./terraform
+    skip_cleanup: true
+    on:
+        branch: master
+
+after_success:
+  - aws cloudformation delete-stack --stack-name TERRAFORM-TRAVIS-0001
+after_failure:
+  - aws cloudformation delete-stack --stack-name TERRAFORM-TRAVIS-0001
+

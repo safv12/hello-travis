@@ -2,19 +2,19 @@ variable "environment" {
   description = "Environment in which the lambda will be deployed"
 }
 
-variable "lambda-handler" {
+variable "lambda_handler" {
   description = "Name of the command to call to execute the lambda function"
 }
 
-variable "lambda-zip" {
+variable "lambda_zip" {
   description = "Path to the zip file containing the binaries of the lambda"
 }
 
-variable "lambda-timeout" {
+variable "lambda_timeout" {
   description = "Number of seconds after which the lambda time outs"
 }
 
-variable "lambda-memory" {
+variable "lambda_memory" {
   description = "Memory assigned to the execution of each instance of the lambda health check"
 }
 
